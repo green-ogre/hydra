@@ -1,4 +1,5 @@
 fn main() :: i32 {
-    let val : i32 = 69;
+    let test: u64 = 42;
+    let val = 69;
     return val;
 }

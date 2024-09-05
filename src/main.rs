@@ -1,4 +1,5 @@
-use std::process::Command;
+use core::panic;
+use std::{path::PathBuf, process::Command, str::FromStr};
 
 use colored::Colorize;
 
@@ -6,32 +7,44 @@ fn main() {
     let mut args = std::env::args();
     let _ex = args.next();
     let path = args.next().expect("file not provided: nova <file.hy>");
-    let raw = std::fs::read_to_string(path).unwrap();
+    let raw = std::fs::read_to_string(&path).unwrap();
     let tokens = tokenize_file(raw);
-    // println!("{tokens:#?}");
+    let path = PathBuf::from_str(&path).unwrap();
+    let path = path.file_stem().unwrap().to_str().unwrap();
+
+    for file in std::fs::read_dir("./build").unwrap() {
+        std::fs::remove_file(file.unwrap().path()).unwrap();
+    }
 
     let output = compile(tokens);
-    std::fs::write("test.asm", output).unwrap();
+    std::fs::write(format!("./build/{}.asm", path), output).unwrap();
+
+    // nasm -fmacho64 hola.asm && gcc hola.o && ./a.out
+
+    #[cfg(target_os = "linux")]
+    let format = "elf64";
+    #[cfg(target_os = "macos")]
+    let format = "macho64";
 
     let output = Command::new("nasm")
         .arg("-f")
-        .arg("elf64")
+        .arg(format)
         .arg("-o")
-        .arg("./build/hydra_asm.o")
-        .arg("test.asm")
+        .arg(format!("./build/{}.o", &path))
+        .arg(format!("./build/{}.asm", path))
         .output()
         .unwrap();
     println!("{output:?}");
     let output = Command::new("ld")
         .arg("-o")
-        .arg("./build/hydra_asm")
-        .arg("./build/hydra_asm.o")
+        .arg(format!("./build/{}", &path))
+        .arg(format!("./build/{}.o", &path))
         .output()
         .unwrap();
     println!("{output:?}");
     println!(
         "exit code: {:?}",
-        Command::new("./build/hydra_asm")
+        Command::new(format!("./build/{}", &path))
             .output()
             .unwrap()
             .status
@@ -92,10 +105,35 @@ impl TokenType {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 enum Type {
-    // TODO: this to make code look nice elsewhere, but it doesn't make any sense here
     #[default]
-    Undefined,
+    Void,
     I32,
+    I64,
+    U32,
+    U64,
+}
+
+impl Type {
+    pub fn keyword(&self) -> String {
+        let keyword = match self {
+            Self::I32 => "dword",
+            Self::I64 => "qword",
+            Self::U32 => "dword",
+            Self::U64 => "qword",
+            Self::Void => panic!(),
+        };
+        keyword.into()
+    }
+
+    pub fn size(&self) -> usize {
+        match self {
+            Type::I32 => 4,
+            Type::U32 => 4,
+            Type::I64 => 8,
+            Type::U64 => 8,
+            Type::Void => panic!(),
+        }
+    }
 }
 
 fn tokenize_file(raw: String) -> Vec<Token> {
@@ -154,6 +192,9 @@ fn interpret_buf(buf: &mut String, tokens: &mut Vec<Token>) {
             } else if buf.chars().next().is_some_and(|c| c.is_alphabetic()) {
                 let token = match ident {
                     "i32" => Token::new(TokenType::Type(Type::I32)),
+                    "u32" => Token::new(TokenType::Type(Type::U32)),
+                    "i64" => Token::new(TokenType::Type(Type::I64)),
+                    "u64" => Token::new(TokenType::Type(Type::U64)),
                     ident => Token::new(TokenType::Ident(ident.into())),
                 };
 
@@ -179,8 +220,9 @@ fn compile(mut tokens: Vec<Token>) -> String {
     output.push('\n');
 
     tokens.reverse();
-    let ast = parse_file(&tokens);
+    let mut ast = parse_file(&tokens);
 
+    propogate_types_for_variables(&mut ast);
     verify_functions(&ast);
 
     // print_ast(&ast, 0);
@@ -193,12 +235,12 @@ fn compile(mut tokens: Vec<Token>) -> String {
             std::mem::discriminant(&child.body),
             std::mem::discriminant(&Syntax::Function {
                 name: Ident(Default::default()),
-                return_type: None
+                return_type: Default::default(),
             })
         );
 
         match &child.body {
-            Syntax::Function { name, return_type } => {
+            Syntax::Function { name, .. } => {
                 output.push_str(&format!("{}:\n", name.0));
                 let mut frame = StackFrame::default();
 
@@ -215,7 +257,7 @@ fn compile(mut tokens: Vec<Token>) -> String {
                 if &name.0 == "main" {
                     output.push_str("_start:\n");
                     output.push_str("\tcall main\n");
-                    output.push_str("\tmov edi, eax\n");
+                    output.push_str("\tmov rdi, rax\n");
                     output.push_str("\tmov rax, 60\n");
                     output.push_str("\tsyscall\n");
                 }
@@ -229,39 +271,91 @@ fn compile(mut tokens: Vec<Token>) -> String {
     output
 }
 
-// fn propogate_types_for_variables(head: &mut Ast) {
-//     for child in head.children.iter() {
-//         match &child.body {
-//             Syntax::Variable(var) => {
-//                 propogate_types(head, var);
-//             }
-//             _ => recur_propogate_types_for_variables(child),
-//         }
-//     }
-// }
-//
-// fn propogate_types(head: &Ast, var: &Variable) -> Option<Type> {
-//     for child in head.children.iter() {
-//         match &child.body {
-//             Syntax::Assignment(ty) => {
-//                 if var.ty.is_none() {
-//                     return Some(*ty);
-//                 } else {
-//                     assert_eq!(*ty, var.ty.unwrap());
-//                     return None;
-//                 }
-//             }
-//             _ => {
-//                 let val = propogate_types(child, var);
-//                 if val.is_some() {
-//                     return val;
-//                 }
-//             }
-//         }
-//     }
-//
-//     None
-// }
+fn propogate_types_for_variables(head: &mut Ast) {
+    let mut inferences = Vec::new();
+    recur_propogate_types_for_variables(head, &mut inferences);
+    for (var_ident, ty) in inferences.into_iter() {
+        assign_type_to_variable(head, &var_ident, &ty);
+    }
+}
+
+fn assign_type_to_variable(head: &mut Ast, var: &Ident, ty: &Type) {
+    match &mut head.body {
+        Syntax::Variable(v) => {
+            if &v.ident == var {
+                v.ty = Some(*ty);
+            }
+        }
+        _ => {}
+    }
+
+    for child in head.children.iter_mut() {
+        assign_type_to_variable(child, var, ty);
+    }
+}
+
+fn recur_propogate_types_for_variables(head: &Ast, buf: &mut Vec<(Ident, Type)>) {
+    for child in head.children.iter() {
+        match &child.body {
+            Syntax::Variable(var) => {
+                if let Some(ty) = propogate_types(head, var) {
+                    buf.push((var.ident.clone(), ty));
+                }
+            }
+            _ => recur_propogate_types_for_variables(child, buf),
+        }
+    }
+}
+
+fn propogate_types(head: &Ast, var: &Variable) -> Option<Type> {
+    if head
+        .children
+        .iter()
+        .find(|a| match &a.body {
+            Syntax::Variable(v) => v.ident == var.ident,
+            _ => false,
+        })
+        .is_some()
+    {
+        match &head.body {
+            Syntax::Return(ty) => {
+                return Some(*ty);
+                // for child in head.children.iter() {
+                // match &child.body {
+                //     Syntax::Literal(_) => return None,
+                //     // TODO: error on void function
+                //     Syntax::Function { return_type, .. } => return *return_type,
+                //     // Syntax::Scope => retrieve_return_children(child)
+                //     Syntax::Variable(_) => {}
+                //     _ => panic!(),
+                // }
+                // }
+            }
+            Syntax::Assignment => {
+                for child in head.children.iter() {
+                    match &child.body {
+                        Syntax::Literal(_) => return None,
+                        // TODO: error on void function
+                        Syntax::Function { return_type, .. } => return Some(*return_type),
+                        // Syntax::Scope => retrieve_return_children(child)
+                        Syntax::Variable(_) => {}
+                        _ => panic!(),
+                    }
+                }
+            }
+            _ => {}
+        }
+    } else {
+        for child in head.children.iter() {
+            let val = propogate_types(child, var);
+            if val.is_some() {
+                return val;
+            }
+        }
+    }
+
+    None
+}
 
 fn verify_functions(head: &Ast) {
     for child in head.children.iter() {
@@ -310,8 +404,9 @@ fn retrieve_variable_from_ident<'a>(head: &'a Ast, ident: &Ident) -> Option<&'a 
 }
 
 fn retrieve_return_children(head: &Ast) -> Option<&[Box<Ast>]> {
-    if head.body == Syntax::Return {
-        return Some(&head.children);
+    match &head.body {
+        Syntax::Return(_) => return Some(&head.children),
+        _ => {}
     }
 
     for child in head.children.iter() {
@@ -373,7 +468,7 @@ fn build_scope(scope: &Ast, frame: &mut StackFrame) -> String {
 
     for child in scope.children.iter() {
         match child.body {
-            Syntax::Return => {
+            Syntax::Return(ty) => {
                 // println!("{child:#?}");
                 let val = &child.children[0];
                 match &val.body {
@@ -413,19 +508,29 @@ fn build_scope(scope: &Ast, frame: &mut StackFrame) -> String {
                 scope_output.push_str(&format!("\tadd rsp, {}\n", frame.size()));
                 scope_output.push_str("\tret\n");
             }
-            Syntax::Assignment(ty) => {
-                println!("yes: {:#?}", child.children);
+            Syntax::Assignment => {
                 let mut offset = 0;
+                let mut ty = None;
                 for ass_child in child.children.iter() {
                     match &ass_child.body {
                         Syntax::Variable(var) => {
                             offset = frame.get_or_push(var.clone());
+                            ty = var.ty
                         }
                         Syntax::Literal(lit) => {
                             assert_eq!(child.children.len(), 2);
                             let val = lit.as_string();
-                            scope_output
-                                .push_str(&format!("\tmov dword [rsp+{}], {}\n", offset, val));
+                            // TODO: literal sizing
+                            if let Some(ty) = ty {
+                                scope_output.push_str(&format!(
+                                    "\tmov {} [rsp+{}], {}\n",
+                                    ty.keyword(),
+                                    offset,
+                                    val
+                                ));
+                            } else {
+                                panic!();
+                            }
                         }
                         _ => panic!(),
                     }
@@ -435,20 +540,19 @@ fn build_scope(scope: &Ast, frame: &mut StackFrame) -> String {
         }
     }
 
-    println!("{frame:?}");
+    println!("{frame:#?}");
 
     // allocate stack
+    // TODO: Need to keep alignment on the stack in order to call functions within other functions.
+    //
+    //
+    //
+    // TODO: Should use the rbp to keep a frame local position in the stack? I'm not exactly sure
+    // how that is different than directly using the stack pointer itself seeing as it will be
+    // restored leaving a scope. It seems to be idomatic...
+    //
     output.push_str(&format!("\tsub rsp, {}\n", frame.size()));
     output.push_str(&scope_output);
-
-    output
-}
-
-fn build_exit(exit_code: i32) -> String {
-    let mut output = String::new();
-    output.push_str("\tmov rax, 60\n");
-    output.push_str(&format!("\tmov rdi, {}\n", exit_code));
-    output.push_str("\tsyscall\n");
 
     output
 }
@@ -494,21 +598,19 @@ impl Literal {
 #[derive(Debug, Clone, PartialEq)]
 struct Variable {
     ident: Ident,
-    ty: Type,
+    ty: Option<Type>,
 }
 
 impl Variable {
     pub fn from_ident(ident: Ident) -> Self {
-        Self {
-            ident,
-            ty: Type::Undefined,
-        }
+        Self { ident, ty: None }
     }
 
     pub fn size(&self) -> usize {
-        match self.ty {
-            Type::I32 => 4,
-            Type::Undefined => panic!(),
+        if let Some(ty) = self.ty {
+            ty.size()
+        } else {
+            panic!()
         }
     }
 }
@@ -516,16 +618,13 @@ impl Variable {
 #[derive(Debug, PartialEq)]
 enum Syntax {
     Variable(Variable),
-    Assignment(Type),
+    Assignment,
     Literal(Literal),
     File,
-    Function {
-        name: Ident,
-        return_type: Option<Type>,
-    },
+    Function { name: Ident, return_type: Type },
     Scope,
     Expression,
-    Return,
+    Return(Type),
     While,
 }
 
@@ -653,18 +752,16 @@ fn parse_function(tokens: &[&Token]) -> Ast {
     let return_type = if tokenizer.is_next(TokenType::Colon) {
         tokenizer.expect(TokenType::Colon).unwrap();
         tokenizer.expect(TokenType::Colon).unwrap();
-        Some(
-            tokenizer
-                .expect(TokenType::Type(Default::default()))
-                .unwrap()
-                .extract_type(),
-        )
+        tokenizer
+            .expect(TokenType::Type(Default::default()))
+            .unwrap()
+            .extract_type()
     } else {
-        None
+        Type::Void
     };
 
     tokenizer.expect(TokenType::OpenCurly).unwrap();
-    children.push(Box::new(parse_scope(&tokenizer.tokens)));
+    children.push(Box::new(parse_scope(&tokenizer.tokens, return_type)));
 
     Ast {
         body: Syntax::Function { name, return_type },
@@ -672,7 +769,7 @@ fn parse_function(tokens: &[&Token]) -> Ast {
     }
 }
 
-fn parse_scope(tokens: &[&Token]) -> Ast {
+fn parse_scope(tokens: &[&Token], return_type: Type) -> Ast {
     let mut children = Vec::new();
     let tokens = tokens.to_vec();
     let mut tokenizer = Tokenizer { tokens };
@@ -688,14 +785,14 @@ fn parse_scope(tokens: &[&Token]) -> Ast {
         match &t.ty {
             TokenType::OpenCurly => {
                 let tokens = collect_tokens_in_scope(&tokenizer.tokens);
-                children.push(Box::new(parse_scope(&tokens)));
+                children.push(Box::new(parse_scope(&tokens, return_type)));
                 skip += tokens.len();
             }
             TokenType::ClosedCurly => {
                 break;
             }
             TokenType::SemiColon => {
-                children.push(Box::new(parse_expr(&expr)));
+                children.push(Box::new(parse_expr(&expr, return_type)));
                 expr.clear();
             }
             _ => expr.push(t),
@@ -708,7 +805,7 @@ fn parse_scope(tokens: &[&Token]) -> Ast {
     }
 }
 
-fn parse_expr(expr: &[&Token]) -> Ast {
+fn parse_expr(expr: &[&Token], return_type: Type) -> Ast {
     // let mut children = Vec::new();
     let mut tokens = expr.to_vec();
     tokens.reverse();
@@ -718,7 +815,7 @@ fn parse_expr(expr: &[&Token]) -> Ast {
         TokenType::Return => {
             // let child = Box::new(parse_return(tokenizer));
             // children.push(child);
-            parse_return(tokenizer)
+            parse_return(tokenizer, return_type)
         }
         TokenType::Let => {
             // let child = Box::new(parse_assignment(tokenizer));
@@ -734,7 +831,7 @@ fn parse_expr(expr: &[&Token]) -> Ast {
     // }
 }
 
-fn parse_return(mut tokenizer: Tokenizer) -> Ast {
+fn parse_return(mut tokenizer: Tokenizer, return_type: Type) -> Ast {
     let mut children = Vec::new();
 
     while let Some(t) = tokenizer.next_token() {
@@ -748,7 +845,7 @@ fn parse_return(mut tokenizer: Tokenizer) -> Ast {
     }
 
     Ast {
-        body: Syntax::Return,
+        body: Syntax::Return(return_type),
         children,
     }
 }
@@ -763,11 +860,17 @@ fn parse_assignment(mut tokenizer: Tokenizer) -> Ast {
             .extract_ident(),
     );
     // TODO: type inference
-    tokenizer.expect(TokenType::Colon).unwrap();
-    let ty = tokenizer
-        .expect(TokenType::Type(Default::default()))
-        .unwrap()
-        .extract_type();
+    let ty = if tokenizer.is_next(TokenType::Colon) {
+        tokenizer.expect(TokenType::Colon).unwrap();
+        Some(
+            tokenizer
+                .expect(TokenType::Type(Default::default()))
+                .unwrap()
+                .extract_type(),
+        )
+    } else {
+        None
+    };
     tokenizer.expect(TokenType::Equals).unwrap();
 
     children.push(Box::new(Ast::variable(Variable { ident, ty })));
@@ -780,7 +883,7 @@ fn parse_assignment(mut tokenizer: Tokenizer) -> Ast {
     }
 
     Ast {
-        body: Syntax::Assignment(ty),
+        body: Syntax::Assignment,
         children,
     }
 }
