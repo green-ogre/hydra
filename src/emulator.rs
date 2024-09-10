@@ -216,7 +216,7 @@ impl Addr {
     }
 
     pub fn signed(&self) -> i64 {
-        if self.is_signed() {
+        if !self.is_signed() {
             println!("retrieved signed value from unsigned addr");
         }
 
@@ -238,7 +238,7 @@ struct Emulator {
     stderr: Vec<u8>,
 }
 
-pub const DRAM_OFFSET: u64 = 4_000_000;
+pub const DRAM_OFFSET: u64 = 0x80000000;
 pub const MEM_SIZE: u64 = u64::MAX;
 pub const SEG_LEN: u64 = u32::MAX as u64;
 
@@ -348,7 +348,13 @@ impl Emulator {
             return false;
         }
 
-        println!("fetching instr: {raw_instr:#x}");
+        // let mut i = 0;
+        // for byte in self.memory(Addr::new_unsigned(DRAM_OFFSET), 16).iter() {
+        //     println!("{:#x}:{:#x}", DRAM_OFFSET + i, byte);
+        //     i += 1;
+        // }
+
+        println!("fetching instr: {:#x}:{raw_instr:#x}", self.pc);
 
         let opcode = raw_instr & 0b1111111;
         let instr = match opcode {
@@ -514,12 +520,16 @@ impl Emulator {
             // J-type
             0x6F => {
                 let rd = (raw_instr >> 7) & 0b11111;
-                let imm1 = (raw_instr >> 12) & 0b11111111;
-                let imm2 = (raw_instr >> 20) & 0b1;
-                let imm3 = (raw_instr >> 21) & 0b1111111111;
-                let imm4 = (raw_instr >> 31) & 0b1;
+                let imm20 = (raw_instr >> 31) & 0x1;
+                let imm10_1 = (raw_instr >> 21) & 0x3ff;
+                let imm11 = (raw_instr >> 20) & 0x1;
+                let imm19_12 = (raw_instr >> 12) & 0xff;
 
-                let imm = (imm3 << 1) | (imm2 << 11) | (imm1 << 12) | (imm4 << 31);
+                let mut imm = (imm20 << 20) | (imm19_12 << 12) | (imm11 << 11) | (imm10_1 << 1);
+
+                if (imm & 0x100000) != 0 {
+                    imm |= 0xffe00000;
+                }
 
                 println!("decoded instr: {imm:#x} {rd:#x} {opcode:#x}");
 
@@ -554,7 +564,7 @@ impl Emulator {
 
     pub fn add_pc(&mut self, offset: Addr) {
         if offset.is_signed() {
-            self.pc = (self.pc as i64 + offset.signed()) as u64;
+            self.pc = self.pc.wrapping_add(offset.val);
         } else {
             self.pc = self.pc + offset.val;
         }
@@ -728,13 +738,14 @@ impl Emulator {
             }
             Instr::Jal(dst, offset) => {
                 self.set(dst, self.pc + 4);
-                self.add_pc(offset);
+                self.pc = ((self.pc as u32).wrapping_add(offset.val as u32)) as u64;
             }
             Instr::Jalr(dst, src, offset) => {
-                self.execute(Instr::Addi(Reg::T(1), Reg::Zero, Imm::Bin(self.pc as u32)));
-                self.execute(Instr::Addi(dst, Reg::T(1), Imm::Bin(4)));
-                let jmp = ((self.reg_signed(src) + offset.signed()) & !1) as u64;
-                self.pc = jmp;
+                todo!();
+                // self.execute(Instr::Addi(Reg::T(1), Reg::Zero, Imm::Bin(self.pc as u32)));
+                // self.execute(Instr::Addi(dst, Reg::T(1), Imm::Bin(4)));
+                // let jmp = ((self.reg_signed(src) + offset.signed()) & !1) as u64;
+                // self.pc = jmp;
             }
             Instr::Beq(src1, src2, offset) => {
                 if self.reg(src1) == self.reg(src2) {
@@ -817,6 +828,8 @@ impl Emulator {
                 self.add_pc(Addr::new_unsigned(4));
             }
         }
+
+        self.set(Reg::Zero, 0);
     }
 }
 

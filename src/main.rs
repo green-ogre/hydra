@@ -9,7 +9,7 @@ mod parse;
 mod token;
 
 fn main() {
-    //riscv32-unknown-elf-gcc -nostdlib -Ttext=0x80000000 -o emu.txt ./emu.S
+    // riscv32-unknown-elf-gcc -nostdlib -Ttext=0x80000000 -o emu.txt ./emu.S
     let output = Command::new("riscv32-unknown-elf-gcc")
         .arg("-nostdlib")
         .arg("-Ttext=0x80000000")
@@ -39,7 +39,7 @@ fn main() {
 
     let raw = std::fs::read("./emu.txt").unwrap();
 
-    std::fs::remove_file("./emu.txt").unwrap();
+    // std::fs::remove_file("./emu.txt").unwrap();
 
     emulator::emulate(&raw);
 
