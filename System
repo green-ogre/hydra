@@ -1,0 +1,437 @@
+     0                                   ;;; %define __?FILE?__ 
+     0                                   ;;; %define __?LINE?__ 
+     0                                   ;;; %define __?BITS?__ 
+     0                                   ;;; %define __?PTR?__ 
+     0                                   ;;; %idefine %abs(=) 
+     0                                   ;;; %idefine %count(+) 
+     0                                   ;;; %idefine %eval(=+) 
+     0                                   ;;; %idefine %map(+) 
+     0                                   ;;; %idefine %str(&+) 
+     0                                   ;;; %idefine %strcat(&&+) 
+     0                                   ;;; %idefine %strlen(&&) 
+     0                                   ;;; %idefine %tok(&&) 
+     0                                   ;;; %idefine %hex(=+/ux) 
+     0                                   ;;; %idefine %sel(=,+) 
+     0                                   ;;; %idefine %cond(=,,) 
+     0                                   ;;; %idefine %num(=,=,=) 
+     0                                   ;;; %idefine %substr(&&,=,=) 
+     0                                   ;;; %idefine %is(+) 
+     0                                   ;;; %idefine %isctx(+) 
+     0                                   ;;; %idefine %isdef(+) 
+     0                                   ;;; %idefine %isdefalias(+) 
+     0                                   ;;; %idefine %isdifi(+) 
+     0                                   ;;; %idefine %isempty(+) 
+     0                                   ;;; %idefine %isenv(+) 
+     0                                   ;;; %idefine %isid(+) 
+     0                                   ;;; %idefine %isidn(+) 
+     0                                   ;;; %idefine %isidni(+) 
+     0                                   ;;; %idefine %ismacro(+) 
+     0                                   ;;; %idefine %isnum(+) 
+     0                                   ;;; %idefine %isstr(+) 
+     0                                   ;;; %idefine %istoken(+) 
+     0                                   ;;; %idefine %isusable(+) 
+     0                                   ;;; %idefine %isusing(+) 
+     0                                   ;;; %idefine %isn(+) 
+     0                                   ;;; %idefine %isnctx(+) 
+     0                                   ;;; %idefine %isndef(+) 
+     0                                   ;;; %idefine %isndefalias(+) 
+     0                                   ;;; %idefine %isndifi(+) 
+     0                                   ;;; %idefine %isnempty(+) 
+     0                                   ;;; %idefine %isnenv(+) 
+     0                                   ;;; %idefine %isnid(+) 
+     0                                   ;;; %idefine %isnidn(+) 
+     0                                   ;;; %idefine %isnidni(+) 
+     0                                   ;;; %idefine %isnmacro(+) 
+     0                                   ;;; %idefine %isnnum(+) 
+     0                                   ;;; %idefine %isnstr(+) 
+     0                                   ;;; %idefine %isntoken(+) 
+     0                                   ;;; %idefine %isnusable(+) 
+     0                                   ;;; %idefine %isnusing(+) 
+     0                                   ;;; %define __?PASS?__ 2
+     0                              <1> %define __?SECT?__
+     0                              <1>  ;;; %define __?SECT?__ 
+     0                              <1> %defalias __SECT__ __?SECT?__
+     0                              <1>  ;;; %defalias __SECT__ __?SECT?__
+     0                              <1> %imacro section 1+.nolist
+     0                              <1> %define __?SECT?__ [section %1]
+     0                              <1> __?SECT?__
+     0                              <1> %endmacro 
+     0                              <1> %imacro segment 1+.nolist
+     0                              <1> %define __?SECT?__ [segment %1]
+     0                              <1> __?SECT?__
+     0                              <1> %endmacro 
+     0                              <1> %define __?SECTALIGN_ALIGN_UPDATES_SECTION?__ 1
+     0                              <1>  ;;; %define __?SECTALIGN_ALIGN_UPDATES_SECTION?__ 1
+     0                              <1> %imacro sectalign 1+.nolist
+     0                              <1> %ifidni %1,off
+     0                              <1> %define __?SECTALIGN_ALIGN_UPDATES_SECTION?__ 0
+     0                              <1> %elifidni %1,on
+     0                              <1> %define __?SECTALIGN_ALIGN_UPDATES_SECTION?__ 1
+     0                              <1> %else 
+     0                              <1> [sectalign %1]
+     0                              <1> %endif 
+     0                              <1> %endmacro 
+     0                              <1> %defalias __SECTALIGN_ALIGN_UPDATES_SECTION__ __?SECTALIGN_ALIGN_UPDATES_SECTION?__
+     0                              <1>  ;;; %defalias __SECTALIGN_ALIGN_UPDATES_SECTION__ __?SECTALIGN_ALIGN_UPDATES_SECTION?__
+     0                              <1> %imacro absolute 1+.nolist
+     0                              <1> %define __?SECT?__ [absolute %1]
+     0                              <1> __?SECT?__
+     0                              <1> %endmacro 
+     0                              <1> %imacro struc 1-2.nolist 0
+     0                              <1> %push 
+     0                              <1> %define %$strucname %1
+     0                              <1> [absolute %2]
+     0                              <1> %$strucname:
+     0                              <1> %endmacro 
+     0                              <1> %imacro endstruc 0.nolist
+     0                              <1> %{$strucname}_size equ ($-%$strucname)
+     0                              <1> %pop 
+     0                              <1> __?SECT?__
+     0                              <1> %endmacro 
+     0                              <1> %imacro istruc 1.nolist
+     0                              <1> %push 
+     0                              <1> %define %$strucname %1
+     0                              <1> %$strucstart:
+     0                              <1> %endmacro 
+     0                              <1> %imacro at 1-2+.nolist
+     0                              <1> %defstr %$member %1
+     0                              <1> %substr %$member1 %$member 1
+     0                              <1> %ifidn %$member1, '.'
+     0                              <1> times (%$strucname%1-%$strucname)-($-%$strucstart) db 0
+     0                              <1> %else 
+     0                              <1> times (%1-%$strucname)-($-%$strucstart) db 0
+     0                              <1> %endif 
+     0                              <1> %2
+     0                              <1> %endmacro 
+     0                              <1> %imacro iend 0.nolist
+     0                              <1> times %{$strucname}_size-($-%$strucstart) db 0
+     0                              <1> %pop 
+     0                              <1> %endmacro 
+     0                              <1> %imacro align 1-2+.nolist nop
+     0                              <1> %if __?SECTALIGN_ALIGN_UPDATES_SECTION?__
+     0                              <1> sectalign %1
+     0                              <1> %endif 
+     0                              <1> times (((%1) - (($-$$) % (%1))) % (%1)) %2
+     0                              <1> %endmacro 
+     0                              <1> %imacro alignb 1-2+.nolist
+     0                              <1> %if __?SECTALIGN_ALIGN_UPDATES_SECTION?__
+     0                              <1> sectalign %1
+     0                              <1> %endif 
+     0                              <1> %ifempty %2
+     0                              <1> [warning push]
+     0                              <1> [warning -zeroing]
+     0                              <1> resb (((%1) - (($-$$) % (%1))) % (%1))
+     0                              <1> [warning pop]
+     0                              <1> %else 
+     0                              <1> times (((%1) - (($-$$) % (%1))) % (%1)) %2
+     0                              <1> %endif 
+     0                              <1> %endmacro 
+     0                              <1> %imacro bits 1+.nolist
+     0                              <1> [bits %1]
+     0                              <1> %endmacro 
+     0                              <1> %imacro use16 0.nolist
+     0                              <1> [bits 16]
+     0                              <1> %endmacro 
+     0                              <1> %imacro use32 0.nolist
+     0                              <1> [bits 32]
+     0                              <1> %endmacro 
+     0                              <1> %imacro use64 0.nolist
+     0                              <1> [bits 64]
+     0                              <1> %endmacro 
+     0                              <1> %imacro extern 1-*.nolist
+     0                              <1> %rep %0
+     0                              <1> [extern %1]
+     0                              <1> %rotate 1
+     0                              <1> %endrep 
+     0                              <1> %endmacro 
+     0                              <1> %imacro static 1-*.nolist
+     0                              <1> %rep %0
+     0                              <1> [static %1]
+     0                              <1> %rotate 1
+     0                              <1> %endrep 
+     0                              <1> %endmacro 
+     0                              <1> %imacro global 1-*.nolist
+     0                              <1> %rep %0
+     0                              <1> [global %1]
+     0                              <1> %rotate 1
+     0                              <1> %endrep 
+     0                              <1> %endmacro 
+     0                              <1> %imacro required 1-*.nolist
+     0                              <1> %rep %0
+     0                              <1> [required %1]
+     0                              <1> %rotate 1
+     0                              <1> %endrep 
+     0                              <1> %endmacro 
+     0                              <1> %imacro common 1-*.nolist
+     0                              <1> %rep %0
+     0                              <1> [common %1]
+     0                              <1> %rotate 1
+     0                              <1> %endrep 
+     0                              <1> %endmacro 
+     0                              <1> %imacro cpu 1+.nolist
+     0                              <1> [cpu %1]
+     0                              <1> %endmacro 
+     0                              <1> %define __?FLOAT_DAZ?__ nodaz
+     0                              <1>  ;;; %define __?FLOAT_DAZ?__ nodaz
+     0                              <1> %define __?FLOAT_ROUND?__ near
+     0                              <1>  ;;; %define __?FLOAT_ROUND?__ near
+     0                              <1> %define __?FLOAT?__ __?FLOAT_DAZ?__,__?FLOAT_ROUND?__
+     0                              <1>  ;;; %define __?FLOAT?__ __?FLOAT_DAZ?__,__?FLOAT_ROUND?__
+     0                              <1> %defalias __FLOAT_DAZ__ __?FLOAT_DAZ?__
+     0                              <1>  ;;; %defalias __FLOAT_DAZ__ __?FLOAT_DAZ?__
+     0                              <1> %defalias __FLOAT_ROUND__ __?FLOAT_ROUND?__
+     0                              <1>  ;;; %defalias __FLOAT_ROUND__ __?FLOAT_ROUND?__
+     0                              <1> %defalias __FLOAT__ __?FLOAT?__
+     0                              <1>  ;;; %defalias __FLOAT__ __?FLOAT?__
+     0                              <1> %imacro float 1-*.nolist
+     0                              <1> %rep %0
+     0                              <1> [float %1]
+     0                              <1> %ifidni %1,daz
+     0                              <1> %define __?FLOAT_DAZ?__ daz
+     0                              <1> %elifidni %1,nodaz
+     0                              <1> %define __?FLOAT_DAZ?__ nodaz
+     0                              <1> %elifidni %1,near
+     0                              <1> %define __?FLOAT_ROUND?__ near
+     0                              <1> %elifidni %1,up
+     0                              <1> %define __?FLOAT_ROUND?__ up
+     0                              <1> %elifidni %1,down
+     0                              <1> %define __?FLOAT_ROUND?__ down
+     0                              <1> %elifidni %1,zero
+     0                              <1> %define __?FLOAT_ROUND?__ zero
+     0                              <1> %elifidni %1,default
+     0                              <1> %define __?FLOAT_DAZ?__ nodaz
+     0                              <1> %define __?FLOAT_ROUND?__ near
+     0                              <1> %endif 
+     0                              <1> %rotate 1
+     0                              <1> %endrep 
+     0                              <1> %endmacro 
+     0                              <1> %imacro default 1+.nolist
+     0                              <1> [default %1]
+     0                              <1> %endmacro 
+     0                              <1> %imacro userel 0.nolist
+     0                              <1> [default rel]
+     0                              <1> %endmacro 
+     0                              <1> %imacro useabs 0.nolist
+     0                              <1> [default abs]
+     0                              <1> %endmacro 
+     0                              <1> %imacro usebnd 0.nolist
+     0                              <1> [default bnd]
+     0                              <1> %endmacro 
+     0                              <1> %imacro usenobnd 0.nolist
+     0                              <1> [default nobnd]
+     0                              <1> %endmacro 
+     0                              <1> %imacro incbin 1-2+.nolist 0
+     0                              <1> %push 
+     0                              <1> %pathsearch %$dep %1
+     0                              <1> %depend %$dep
+     0                              <1> %? %$dep,%2
+     0                              <1> %pop 
+     0                              <1> %endmacro 
+     0                              <1> %defalias __NASM_MAJOR__ __?NASM_MAJOR?__
+     0                              <1>  ;;; %defalias __NASM_MAJOR__ __?NASM_MAJOR?__
+     0                              <1> %defalias __NASM_MINOR__ __?NASM_MINOR?__
+     0                              <1>  ;;; %defalias __NASM_MINOR__ __?NASM_MINOR?__
+     0                              <1> %defalias __NASM_SUBMINOR__ __?NASM_SUBMINOR?__
+     0                              <1>  ;;; %defalias __NASM_SUBMINOR__ __?NASM_SUBMINOR?__
+     0                              <1> %defalias __NASM_PATCHLEVEL__ __?NASM_PATCHLEVEL?__
+     0                              <1>  ;;; %defalias __NASM_PATCHLEVEL__ __?NASM_PATCHLEVEL?__
+     0                              <1> %defalias __NASM_SNAPSHOT__ __?NASM_SNAPSHOT?__
+     0                              <1>  ;;; %defalias __NASM_SNAPSHOT__ __?NASM_SNAPSHOT?__
+     0                              <1> %defalias __NASM_VERSION_ID__ __?NASM_VERSION_ID?__
+     0                              <1>  ;;; %defalias __NASM_VERSION_ID__ __?NASM_VERSION_ID?__
+     0                              <1> %defalias __NASM_VER__ __?NASM_VER?__
+     0                              <1>  ;;; %defalias __NASM_VER__ __?NASM_VER?__
+     0                              <1> %defalias __OUTPUT_FORMAT__ __?OUTPUT_FORMAT?__
+     0                              <1>  ;;; %defalias __OUTPUT_FORMAT__ __?OUTPUT_FORMAT?__
+     0                              <1> %defalias __DEBUG_FORMAT__ __?DEBUG_FORMAT?__
+     0                              <1>  ;;; %defalias __DEBUG_FORMAT__ __?DEBUG_FORMAT?__
+     0                              <1> %defalias __DATE__ __?DATE?__
+     0                              <1>  ;;; %defalias __DATE__ __?DATE?__
+     0                              <1> %defalias __DATE_NUM__ __?DATE_NUM?__
+     0                              <1>  ;;; %defalias __DATE_NUM__ __?DATE_NUM?__
+     0                              <1> %defalias __TIME__ __?TIME?__
+     0                              <1>  ;;; %defalias __TIME__ __?TIME?__
+     0                              <1> %defalias __TIME_NUM__ __?TIME_NUM?__
+     0                              <1>  ;;; %defalias __TIME_NUM__ __?TIME_NUM?__
+     0                              <1> %defalias __UTC_DATE__ __?UTC_DATE?__
+     0                              <1>  ;;; %defalias __UTC_DATE__ __?UTC_DATE?__
+     0                              <1> %defalias __UTC_DATE_NUM__ __?UTC_DATE_NUM?__
+     0                              <1>  ;;; %defalias __UTC_DATE_NUM__ __?UTC_DATE_NUM?__
+     0                              <1> %defalias __UTC_TIME__ __?UTC_TIME?__
+     0                              <1>  ;;; %defalias __UTC_TIME__ __?UTC_TIME?__
+     0                              <1> %defalias __UTC_TIME_NUM__ __?UTC_TIME_NUM?__
+     0                              <1>  ;;; %defalias __UTC_TIME_NUM__ __?UTC_TIME_NUM?__
+     0                              <1> %defalias __POSIX_TIME__ __?POSIX_TIME?__
+     0                              <1>  ;;; %defalias __POSIX_TIME__ __?POSIX_TIME?__
+     0                              <1> %defalias __FILE__ __?FILE?__
+     0                              <1>  ;;; %defalias __FILE__ __?FILE?__
+     0                              <1> %defalias __LINE__ __?LINE?__
+     0                              <1>  ;;; %defalias __LINE__ __?LINE?__
+     0                              <1> %defalias __BITS__ __?BITS?__
+     0                              <1>  ;;; %defalias __BITS__ __?BITS?__
+     0                              <1> %defalias __PTR__ __?PTR?__
+     0                              <1>  ;;; %defalias __PTR__ __?PTR?__
+     0                              <1> %defalias __PASS__ __?PASS?__
+     0                              <1>  ;;; %defalias __PASS__ __?PASS?__
+     0                              <1> %idefine __?infinity?__ %?
+     0                              <1>  ;;; %idefine __?infinity?__ %?
+     0                              <1> %idefine __?nan?__ %?
+     0                              <1>  ;;; %idefine __?nan?__ %?
+     0                              <1> %idefine __?qnan?__ %?
+     0                              <1>  ;;; %idefine __?qnan?__ %?
+     0                              <1> %idefine __?snan?__ %?
+     0                              <1>  ;;; %idefine __?snan?__ %?
+     0                              <1> %idefine __?float8?__ %?
+     0                              <1>  ;;; %idefine __?float8?__ %?
+     0                              <1> %idefine __?float16?__ %?
+     0                              <1>  ;;; %idefine __?float16?__ %?
+     0                              <1> %idefine __?float32?__ %?
+     0                              <1>  ;;; %idefine __?float32?__ %?
+     0                              <1> %idefine __?float64?__ %?
+     0                              <1>  ;;; %idefine __?float64?__ %?
+     0                              <1> %idefine __?float80m?__ %?
+     0                              <1>  ;;; %idefine __?float80m?__ %?
+     0                              <1> %idefine __?float80e?__ %?
+     0                              <1>  ;;; %idefine __?float80e?__ %?
+     0                              <1> %idefine __?float128l?__ %?
+     0                              <1>  ;;; %idefine __?float128l?__ %?
+     0                              <1> %idefine __?float128h?__ %?
+     0                              <1>  ;;; %idefine __?float128h?__ %?
+     0                              <1> %idefine __?utf16?__ %?
+     0                              <1>  ;;; %idefine __?utf16?__ %?
+     0                              <1> %idefine __?utf16le?__ %?
+     0                              <1>  ;;; %idefine __?utf16le?__ %?
+     0                              <1> %idefine __?utf16be?__ %?
+     0                              <1>  ;;; %idefine __?utf16be?__ %?
+     0                              <1> %idefine __?utf32?__ %?
+     0                              <1>  ;;; %idefine __?utf32?__ %?
+     0                              <1> %idefine __?utf32le?__ %?
+     0                              <1>  ;;; %idefine __?utf32le?__ %?
+     0                              <1> %idefine __?utf32be?__ %?
+     0                              <1>  ;;; %idefine __?utf32be?__ %?
+     0                              <1> %idefine __?ilog2e?__ %?
+     0                              <1>  ;;; %idefine __?ilog2e?__ %?
+     0                              <1> %idefine __?ilog2w?__ %?
+     0                              <1>  ;;; %idefine __?ilog2w?__ %?
+     0                              <1> %idefine __?ilog2f?__ %?
+     0                              <1>  ;;; %idefine __?ilog2f?__ %?
+     0                              <1> %idefine __?ilog2c?__ %?
+     0                              <1>  ;;; %idefine __?ilog2c?__ %?
+     0                              <1> %idefalias __infinity__ __?infinity?__
+     0                              <1>  ;;; %idefalias __infinity__ __?infinity?__
+     0                              <1> %idefalias __nan__ __?nan?__
+     0                              <1>  ;;; %idefalias __nan__ __?nan?__
+     0                              <1> %idefalias __qnan__ __?qnan?__
+     0                              <1>  ;;; %idefalias __qnan__ __?qnan?__
+     0                              <1> %idefalias __snan__ __?snan?__
+     0                              <1>  ;;; %idefalias __snan__ __?snan?__
+     0                              <1> %idefalias __float8__ __?float8?__
+     0                              <1>  ;;; %idefalias __float8__ __?float8?__
+     0                              <1> %idefalias __float16__ __?float16?__
+     0                              <1>  ;;; %idefalias __float16__ __?float16?__
+     0                              <1> %idefalias __float32__ __?float32?__
+     0                              <1>  ;;; %idefalias __float32__ __?float32?__
+     0                              <1> %idefalias __float64__ __?float64?__
+     0                              <1>  ;;; %idefalias __float64__ __?float64?__
+     0                              <1> %idefalias __float80m__ __?float80m?__
+     0                              <1>  ;;; %idefalias __float80m__ __?float80m?__
+     0                              <1> %idefalias __float80e__ __?float80e?__
+     0                              <1>  ;;; %idefalias __float80e__ __?float80e?__
+     0                              <1> %idefalias __float128l__ __?float128l?__
+     0                              <1>  ;;; %idefalias __float128l__ __?float128l?__
+     0                              <1> %idefalias __float128h__ __?float128h?__
+     0                              <1>  ;;; %idefalias __float128h__ __?float128h?__
+     0                              <1> %idefalias __utf16__ __?utf16?__
+     0                              <1>  ;;; %idefalias __utf16__ __?utf16?__
+     0                              <1> %idefalias __utf16le__ __?utf16le?__
+     0                              <1>  ;;; %idefalias __utf16le__ __?utf16le?__
+     0                              <1> %idefalias __utf16be__ __?utf16be?__
+     0                              <1>  ;;; %idefalias __utf16be__ __?utf16be?__
+     0                              <1> %idefalias __utf32__ __?utf32?__
+     0                              <1>  ;;; %idefalias __utf32__ __?utf32?__
+     0                              <1> %idefalias __utf32le__ __?utf32le?__
+     0                              <1>  ;;; %idefalias __utf32le__ __?utf32le?__
+     0                              <1> %idefalias __utf32be__ __?utf32be?__
+     0                              <1>  ;;; %idefalias __utf32be__ __?utf32be?__
+     0                              <1> %idefalias __ilog2e__ __?ilog2e?__
+     0                              <1>  ;;; %idefalias __ilog2e__ __?ilog2e?__
+     0                              <1> %idefalias __ilog2w__ __?ilog2w?__
+     0                              <1>  ;;; %idefalias __ilog2w__ __?ilog2w?__
+     0                              <1> %idefalias __ilog2f__ __?ilog2f?__
+     0                              <1>  ;;; %idefalias __ilog2f__ __?ilog2f?__
+     0                              <1> %idefalias __ilog2c__ __?ilog2c?__
+     0                              <1>  ;;; %idefalias __ilog2c__ __?ilog2c?__
+     0                              <1> %define __?NASM_MAJOR?__ 2
+     0                              <1>  ;;; %define __?NASM_MAJOR?__ 2
+     0                              <1> %define __?NASM_MINOR?__ 16
+     0                              <1>  ;;; %define __?NASM_MINOR?__ 16
+     0                              <1> %define __?NASM_SUBMINOR?__ 3
+     0                              <1>  ;;; %define __?NASM_SUBMINOR?__ 3
+     0                              <1> %define __?NASM_PATCHLEVEL?__ 0
+     0                              <1>  ;;; %define __?NASM_PATCHLEVEL?__ 0
+     0                              <1> %define __?NASM_VERSION_ID?__ 002100300h
+     0                              <1>  ;;; %define __?NASM_VERSION_ID?__ 002100300h
+     0                              <1> %define __?NASM_VER?__ "2.16.03"
+     0                              <1>  ;;; %define __?NASM_VER?__ "2.16.03"
+     0                              <1> %define __?SECT?__ [section .text]
+     0                              <1>  ;;; %define __?SECT?__ [section .text]
+     0                              <1> %macro __?NASM_CDecl?__ 1
+     0                              <1> %endmacro 
+     0                              <1> %imacro subsections_via_symbols 0.nolist
+     0                              <1> %pragma __?OUTPUT_FORMAT?__ %?
+     0                              <1> %endmacro 
+     0                              <1> %imacro no_dead_strip 1-*.nolist
+     0                              <1> %rep %0
+     0                              <1> %pragma __?OUTPUT_FORMAT?__ %? %1
+     0                              <1> %rotate 1
+     0                              <1> %endrep 
+     0                              <1> %endmacro 
+     0                              <1> %define __?DATE?__ "2024-09-05"
+     0                              <1>  ;;; %define __?DATE?__ "2024-09-05"
+     0                              <1> %define __?DATE_NUM?__ 20240905
+     0                              <1>  ;;; %define __?DATE_NUM?__ 20240905
+     0                              <1> %define __?TIME?__ "00:25:36"
+     0                              <1>  ;;; %define __?TIME?__ "00:25:36"
+     0                              <1> %define __?TIME_NUM?__ 002536
+     0                              <1>  ;;; %define __?TIME_NUM?__ 002536
+     0                              <1> %define __?UTC_DATE?__ "2024-09-05"
+     0                              <1>  ;;; %define __?UTC_DATE?__ "2024-09-05"
+     0                              <1> %define __?UTC_DATE_NUM?__ 20240905
+     0                              <1>  ;;; %define __?UTC_DATE_NUM?__ 20240905
+     0                              <1> %define __?UTC_TIME?__ "06:25:36"
+     0                              <1>  ;;; %define __?UTC_TIME?__ "06:25:36"
+     0                              <1> %define __?UTC_TIME_NUM?__ 062536
+     0                              <1>  ;;; %define __?UTC_TIME_NUM?__ 062536
+     0                              <1> %define __?POSIX_TIME?__ 1725517536
+     0                              <1>  ;;; %define __?POSIX_TIME?__ 1725517536
+     0                              <1> %define __?OUTPUT_FORMAT?__ macho64
+     0                              <1>  ;;; %define __?OUTPUT_FORMAT?__ macho64
+     1                                  global _main
+     2                                  section .text
+     2                                   ;;; %define __?SECT?__ [section .text]
+     3                                  
+     4                                  main:
+     4                                   ;;; main:
+     5                                  	sub rsp, 12
+     5 00000000 4883EC0C                 ;;;  sub rsp, 12
+     6                                  	mov qword [rsp+0], 42
+     6 00000004 48C704242A000000         ;;;  mov qword [rsp+0], 42
+     7                                  	mov dword [rsp+8], 69
+     7 0000000C C744240845000000         ;;;  mov dword [rsp+8], 69
+     8                                  	mov rax, [rsp+8]
+     8 00000014 488B442408               ;;;  mov rax, [rsp+8]
+     9                                  	add rsp, 12
+     9 00000019 4883C40C                 ;;;  add rsp, 12
+    10                                  	ret
+    10 0000001D C3                       ;;;  ret
+    11                                  
+    12                                  _main:
+    12                                   ;;; _main:
+    13                                  	call main
+    13 0000001E E8DDFFFFFF               ;;;  call main
+    14                                  	mov rdi, rax
+    14 00000023 4889C7                   ;;;  mov rdi, rax
+    15                                  	mov rax, 60
+    15 00000026 B83C000000               ;;;  mov rax, 60
+    16                                  	syscall
+    16 0000002B 0F05                     ;;;  syscall
