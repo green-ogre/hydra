@@ -1,61 +1,133 @@
 use colored::Colorize;
 use core::panic;
-use std::{path::PathBuf, process::Command, str::FromStr};
+use std::{os::unix::process::CommandExt, path::PathBuf, process::Command, str::FromStr};
 
 mod ast;
 mod compiler;
+mod emulator;
 mod parse;
 mod token;
 
 fn main() {
-    let mut args = std::env::args();
-    let _ex = args.next();
-    let path = args.next().expect("file not provided: nova <file.hy>");
-    let mut raw = std::fs::read_to_string(&path).unwrap();
-    let path = PathBuf::from_str(&path).unwrap();
-    let path = path.file_stem().unwrap().to_str().unwrap();
-
-    for file in std::fs::read_dir("./build").unwrap() {
-        std::fs::remove_file(file.unwrap().path()).unwrap();
+    //riscv32-unknown-elf-gcc -nostdlib -Ttext=0x80000000 -o emu.txt ./emu.S
+    let output = Command::new("riscv32-unknown-elf-gcc")
+        .arg("-nostdlib")
+        .arg("-Ttext=0x80000000")
+        .arg("-oemu.txt")
+        .arg("./emu.S")
+        .output()
+        .unwrap();
+    if !output.stdout.is_empty() {
+        println!("{}", String::from_utf8_lossy(&output.stdout));
+    }
+    if !output.stderr.is_empty() {
+        println!("{}", String::from_utf8_lossy(&output.stderr));
+    }
+    // riscv32-unknown-elf-objcopy -O binary emu.bin
+    let output = Command::new("riscv32-unknown-elf-objcopy")
+        .arg("-O")
+        .arg("binary")
+        .arg("emu.txt")
+        .output()
+        .unwrap();
+    if !output.stdout.is_empty() {
+        println!("{}", String::from_utf8_lossy(&output.stdout));
+    }
+    if !output.stderr.is_empty() {
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 
-    raw.insert(0, '{');
-    raw.push('}');
+    let raw = std::fs::read("./emu.txt").unwrap();
 
-    let tokens = parse::parse_raw(raw.into());
-    println!("{tokens:#?}");
-    let mut scope = token::parse_tokens(tokens).unwrap();
-    ast::parse_ast(&mut scope);
-    let output = crate::compiler::compile(scope);
-    println!("{output}");
+    std::fs::remove_file("./emu.txt").unwrap();
 
-    std::fs::write(format!("./build/{}.asm", path), output).unwrap();
+    emulator::emulate(&raw);
 
-    let output = Command::new("nasm")
-        .arg("-f")
-        .arg("elf64")
-        .arg("-o")
-        .arg(format!("./build/{}.o", &path))
-        .arg(format!("./build/{}.asm", path))
-        .output()
-        .unwrap();
-    println!("{output:?}");
-    let output = Command::new("ld")
-        .arg("-o")
-        .arg(format!("./build/{}", &path))
-        .arg(format!("./build/{}.o", &path))
-        .output()
-        .unwrap();
-    println!("{output:?}");
-    println!(
-        "exit code: {:?}",
-        Command::new(format!("./build/{}", &path))
-            .output()
-            .unwrap()
-            .status
-            .code()
-            .unwrap()
-    );
+    // let mut args = std::env::args();
+    // let _ex = args.next();
+    // let path = args.next().expect("file not provided: nova <file.hy>");
+    // let compile = !args.next().is_some_and(|a| a == "--compile-asm");
+    //
+    // let mut raw = std::fs::read_to_string(&path).unwrap();
+    // raw.push_str(
+    //     "fn print(str: &[char]) {
+    //         @asm {
+    //             ; rsi -- [] char
+    //             ; rdx -- buf_len
+    //
+    //             mov rsi, [rsp+48]
+    //             mov rdx, [rsp+56]
+    //
+    //             mov rax, 1          ; write
+    //             mov rdi, 1          ; to stdout
+    //             syscall
+    //         }
+    //     }",
+    // );
+    // let path = PathBuf::from_str(&path).unwrap();
+    // let path = path.file_stem().unwrap().to_str().unwrap();
+    //
+    // if compile {
+    //     for file in std::fs::read_dir("./build").unwrap() {
+    //         std::fs::remove_file(file.unwrap().path()).unwrap();
+    //     }
+    //
+    //     raw.insert(0, '{');
+    //     raw.push('}');
+    //
+    //     let tokens = parse::parse_raw(raw.into());
+    //     println!("{tokens:#?}");
+    //     let mut scope = token::parse_tokens(tokens).unwrap();
+    //     println!("{scope:#?}");
+    //     ast::parse_ast(&mut scope);
+    //     println!("{scope:#?}");
+    //     let output = crate::compiler::compile(scope);
+    //     println!("{output}");
+    //
+    //     std::fs::write(format!("./build/{}.asm", path), output).unwrap();
+    // }
+    //
+    // let output = Command::new("nasm")
+    //     .arg("-f")
+    //     .arg("elf64")
+    //     .arg("-o")
+    //     .arg(format!("./build/{}.o", &path))
+    //     .arg(format!("./build/{}.asm", path))
+    //     .output()
+    //     .unwrap();
+    // if !output.stdout.is_empty() {
+    //     println!("nasm stdout: {}", String::from_utf8(output.stdout).unwrap());
+    // }
+    // if !output.stderr.is_empty() {
+    //     println!("nasm stderr: {}", String::from_utf8(output.stderr).unwrap());
+    // }
+    // let output = Command::new("gcc")
+    //     .arg("-no-pie")
+    //     .arg("-o")
+    //     .arg(format!("./build/{}", &path))
+    //     .arg(format!("./build/{}.o", &path))
+    //     .output()
+    //     .unwrap();
+    // if !output.stdout.is_empty() {
+    //     println!(
+    //         "linker stdout: {}",
+    //         String::from_utf8(output.stdout).unwrap()
+    //     );
+    // }
+    // if !output.stderr.is_empty() {
+    //     println!(
+    //         "linker stderr: {}",
+    //         String::from_utf8(output.stderr).unwrap()
+    //     );
+    // }
+    // let output = Command::new(format!("./build/{}", &path)).output().unwrap();
+    // if !output.stdout.is_empty() {
+    //     println!("stout: {}", String::from_utf8(output.stdout).unwrap());
+    // }
+    // if !output.stderr.is_empty() {
+    //     println!("sterr: {:?}", String::from_utf8(output.stderr).unwrap());
+    // }
+    // println!("exit code: {}", output.status.code().unwrap());
 }
 
 // impl PartialEq for TokenType {
